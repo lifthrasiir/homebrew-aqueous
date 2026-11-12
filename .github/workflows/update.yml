@@ -1,9 +1,13 @@
 name: update
 
-# Points the formula and the cask at a release of lifthrasiir/aqueous (update.sh), installs and
-# tests both, and pushes the change. Run by lifthrasiir/aqueous's homebrew workflow when a release
-# is published (repository_dispatch, client_payload.tag), by hand (the latest release, or a tag
-# given), and daily in case a dispatch was missed.
+# Points the formula and the cask at a release of lifthrasiir/aqueous (update.sh: its assets
+# checked against their attestations of build provenance), installs and tests both, and pushes the
+# change. Run by lifthrasiir/aqueous's homebrew workflow when a release is published
+# (repository_dispatch, client_payload.tag), by hand (the latest release, or a tag given), and
+# daily in case a dispatch was missed.
+#
+# The job update, which runs the release's binaries, has a token that reads only; the job push,
+# which runs nothing but git, takes its two files and alone may write.
 
 on:
   repository_dispatch:
@@ -16,8 +20,7 @@ on:
   schedule:
     - cron: '41 3 * * *'
 
-permissions:
-  contents: write
+permissions: {}
 
 concurrency:
   group: update
@@ -27,32 +30,35 @@ jobs:
   update:
     runs-on: macos-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.update.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
       - name: Update
         id: update
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.client_payload.tag || inputs.tag }}
         run: |
-          ./update.sh $TAG
+          ./update.sh ${TAG:+"$TAG"}
           if git diff --quiet; then
             echo "Already at the release."
-            echo changed=0 >> "$GITHUB_OUTPUT"
           else
-            version=$(sed -n 's/^  version "\(.*\)"$/\1/p' Formula/aqr.rb)
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -qam "aqr, aqueous: $version"
-            echo changed=1 >> "$GITHUB_OUTPUT"
+            echo "version=$(sed -n 's/^  version "\(.*\)"$/\1/p' Formula/aqr.rb)" >> "$GITHUB_OUTPUT"
           fi
-      # (the tap from this checkout, its commit included: installed and tested before it is pushed)
+      # (the tap from this checkout, its change committed for brew tap: installed and tested before
+      # it is pushed; the commit undone after)
       - name: Test
-        if: steps.update.outputs.changed == '1'
+        if: steps.update.outputs.version
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
           HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
+          git -c user.name=test -c user.email=test@invalid commit -qam test
           brew tap lifthrasiir/aqueous "$PWD"
           brew trust lifthrasiir/aqueous || true
           brew install lifthrasiir/aqueous/aqr
@@ -61,6 +67,47 @@ jobs:
           brew install --cask lifthrasiir/aqueous/aqueous
           aqr --version
           brew uninstall --cask aqueous
-      - name: Push
-        if: steps.update.outputs.changed == '1'
-        run: git push origin HEAD:main
+          git reset -q --soft HEAD~
+      - if: steps.update.outputs.version
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: tap
+          path: |
+            Formula/aqr.rb
+            Casks/aqueous.rb
+          if-no-files-found: error
+          retention-days: 1
+
+  push:
+    needs: update
+    if: needs.update.outputs.version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the change pushed
+    steps:
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          name: tap
+          path: ${{ runner.temp }}/tap
+      # (the two files alone, and nothing but their versions, URLs and SHA-256s changed)
+      - env:
+          VERSION: ${{ needs.update.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          TAP: ${{ runner.temp }}/tap
+        run: |
+          printf '%s\n' "$VERSION" | grep -Eqx '0\.0\.[0-9]+'
+          cp "$TAP/Formula/aqr.rb" Formula/aqr.rb
+          cp "$TAP/Casks/aqueous.rb" Casks/aqueous.rb
+          git status --porcelain
+          [ -z "$(git status --porcelain -- ':!Formula/aqr.rb' ':!Casks/aqueous.rb')" ]
+          if git diff -U0 | grep -E '^[-+][^-+]' | grep -Evx '[-+] *(version "[0-9.]+"|url "https://github\.com/lifthrasiir/aqueous/releases/download/v0\.0\.[0-9]+/aqr-[0-9]+-[a-z0-9_.-]+"|sha256 "[0-9a-f]{64}")'; then
+              echo "Changed beyond the version, URLs and SHA-256s." >&2; exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qam "aqr, aqueous: $VERSION"
+          gh auth setup-git
+          git push origin HEAD:main

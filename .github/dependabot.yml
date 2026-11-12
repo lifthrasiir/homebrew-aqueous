@@ -1,0 +1,14 @@
+# The actions of the workflow, pinned by commit in .github/workflows/actions.lock, kept up to
+# date (Dependabot regenerates the lockfile's entries); a version waits a week before it is
+# proposed (cooldown).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
