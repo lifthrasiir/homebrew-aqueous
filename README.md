@@ -18,3 +18,6 @@ Gatekeeper does not block `aqr` run from a terminal), and says so after installi
 
 `./update.sh [TAG]` points the formula and the cask at a release (the latest by default), with
 the SHA-256s GitHub gives for its assets.
+
+The workflow `update` does it, then installs and tests both and pushes: on each release published
+(lifthrasiir/aqueous's workflow `homebrew` dispatches it), by hand, and daily.

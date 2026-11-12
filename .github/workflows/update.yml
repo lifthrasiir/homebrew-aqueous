@@ -1,0 +1,66 @@
+name: update
+
+# Points the formula and the cask at a release of lifthrasiir/aqueous (update.sh), installs and
+# tests both, and pushes the change. Run by lifthrasiir/aqueous's homebrew workflow when a release
+# is published (repository_dispatch, client_payload.tag), by hand (the latest release, or a tag
+# given), and daily in case a dispatch was missed.
+
+on:
+  repository_dispatch:
+    types: [release]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag of lifthrasiir/aqueous (the latest release if empty)'
+        required: false
+  schedule:
+    - cron: '41 3 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update
+        id: update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+        run: |
+          ./update.sh $TAG
+          if git diff --quiet; then
+            echo "Already at the release."
+            echo changed=0 >> "$GITHUB_OUTPUT"
+          else
+            version=$(sed -n 's/^  version "\(.*\)"$/\1/p' Formula/aqr.rb)
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -qam "aqr, aqueous: $version"
+            echo changed=1 >> "$GITHUB_OUTPUT"
+          fi
+      # (the tap from this checkout, its commit included: installed and tested before it is pushed)
+      - name: Test
+        if: steps.update.outputs.changed == '1'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew tap lifthrasiir/aqueous "$PWD"
+          brew trust lifthrasiir/aqueous || true
+          brew install lifthrasiir/aqueous/aqr
+          brew test lifthrasiir/aqueous/aqr
+          brew uninstall aqr
+          brew install --cask lifthrasiir/aqueous/aqueous
+          aqr --version
+          brew uninstall --cask aqueous
+      - name: Push
+        if: steps.update.outputs.changed == '1'
+        run: git push origin HEAD:main
