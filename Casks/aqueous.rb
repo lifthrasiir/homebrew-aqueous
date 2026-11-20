@@ -1,6 +1,6 @@
 cask "aqueous" do
-  version "0.0.20261118"
-  sha256 "52549f29e40f04322f1679204a2290eefdd4f74b4423c60802b2a5dd7fae96b0"
+  version "0.0.20261121"
+  sha256 "d24d9fc16dd3ad4c84f6d705a44cd10c6abc8b569d6f5b294943a9ec940f1bf5"
 
   url "https://github.com/lifthrasiir/aqueous/releases/download/v#{version}/aqr-#{version.patch}-mac.zip"
   name "Aqueous"

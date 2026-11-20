@@ -1,7 +1,7 @@
 class Aqr < Formula
   desc "Archiver built around lossless recompression"
   homepage "https://lifthrasiir.github.io/aqueous/"
-  version "0.0.20261118"
+  version "0.0.20261121"
   license "MIT-0"
 
   livecheck do
@@ -11,17 +11,17 @@ class Aqr < Formula
 
   # The release's builds: on macOS aqr is taken out of Aqueous.app (universal, signed ad hoc).
   on_macos do
-    url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261118/aqr-20261118-mac.zip"
-    sha256 "52549f29e40f04322f1679204a2290eefdd4f74b4423c60802b2a5dd7fae96b0"
+    url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261121/aqr-20261121-mac.zip"
+    sha256 "d24d9fc16dd3ad4c84f6d705a44cd10c6abc8b569d6f5b294943a9ec940f1bf5"
   end
   on_linux do
     on_intel do
-      url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261118/aqr-20261118-linux-x86_64.tar.xz"
-      sha256 "13a2da864c23e400d2eae0f57b46ddc8a9642b3f73de9b9762866161566f5387"
+      url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261121/aqr-20261121-linux-x86_64.tar.xz"
+      sha256 "1817f7c4147efaf8bb91944ba65c8d67f59b3b43ebd43bf52fe9eeb484451a3f"
     end
     on_arm do
-      url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261118/aqr-20261118-linux-aarch64.tar.xz"
-      sha256 "4785c85e11baea8ec1517e1a1f6228ecbccaae19adf1ae676f5ceea323c3a0b1"
+      url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261121/aqr-20261121-linux-aarch64.tar.xz"
+      sha256 "fc13972f61c03e1c9baea10a5667a02b1c12de86d28c57d936ca45af15a1e9d0"
     end
   end
 
