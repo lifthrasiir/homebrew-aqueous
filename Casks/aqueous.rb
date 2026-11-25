@@ -1,9 +1,9 @@
 cask "aqueous" do
-  version "0.0.20261121"
-  sha256 "d24d9fc16dd3ad4c84f6d705a44cd10c6abc8b569d6f5b294943a9ec940f1bf5"
+  version "0.0.20261126"
+  sha256 "da3fef88d23d8da50c342645750da5cf6c0e936af33bb5ee35f5c65abc178bd0"
 
   # (the asset's name is not always of the version: update.sh writes it)
-  url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261121/aqr-20261121-mac.zip"
+  url "https://github.com/lifthrasiir/aqueous/releases/download/v0.0.20261126/aqr-20261126-mac.zip"
   name "Aqueous"
   desc "Archiver built around lossless recompression, with Finder's services"
   homepage "https://lifthrasiir.github.io/aqueous/"
