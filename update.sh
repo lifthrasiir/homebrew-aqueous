@@ -11,10 +11,13 @@ set -eu
 cd "$(dirname "$0")"
 repo=lifthrasiir/aqueous
 tag=${1:-$(gh release view -R "$repo" --json tagName -q .tagName)}
-# (the tag goes into perl's code below and into the URLs: digits alone after v0.0.)
-printf '%s\n' "$tag" | grep -Eqx 'v0\.0\.[0-9]+' || { echo "$0: not a tag of a release: $tag" >&2; exit 1; }
+# (the tag goes into perl's code below and into the URLs: vMAJOR.MINOR.PATCH[-PRERELEASE] alone,
+# as lifthrasiir/aqueous's scripts/release-env.sh takes it)
+printf '%s\n' "$tag" | grep -Eqx 'v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.]+)?' ||
+    { echo "$0: not a tag of a release: $tag" >&2; exit 1; }
 version=${tag#v}
-stem=${tag#v0.0.}
+# (the assets' names, as release-env.sh's STEM: the date alone of v0.0.YYYYMMDD, else the version)
+if printf '%s\n' "$tag" | grep -Eqx 'v0\.0\.[0-9]{8}'; then stem=${tag#v0.0.}; else stem=$version; fi
 if grep -qx "  version \"$version\"" Formula/aqr.rb && grep -qx "  version \"$version\"" Casks/aqueous.rb; then
     echo "Already at $tag."
     exit 0
@@ -39,13 +42,14 @@ done
 # (each url line followed by its sha256 line)
 perl -0pi -e '
     s/^([ \t]*version ")[^"]*"/${1}'"$version"'"/m;
-    s{v0\.0\.\d+/aqr-\d+-}{'"$tag"'/aqr-'"$stem"'-}g;
+    s{/download/[^/"]+/aqr-[^"]*-(mac\.zip|linux-x86_64\.tar\.xz|linux-aarch64\.tar\.xz)"}{/download/'"$tag"'/aqr-'"$stem"'-$1"}g;
     s/(mac\.zip"\n[ \t]*sha256 ")\w+/${1}'"$mac"'/;
     s/(linux-x86_64\.tar\.xz"\n[ \t]*sha256 ")\w+/${1}'"$x86"'/;
     s/(linux-aarch64\.tar\.xz"\n[ \t]*sha256 ")\w+/${1}'"$arm"'/;
 ' Formula/aqr.rb
 perl -0pi -e '
     s/^([ \t]*version ")[^"]*"/${1}'"$version"'"/m;
+    s{/download/[^/"]+/aqr-[^"]*-(mac\.zip|linux-x86_64\.tar\.xz|linux-aarch64\.tar\.xz)"}{/download/'"$tag"'/aqr-'"$stem"'-$1"}g;
     s/^([ \t]*sha256 ")\w+/${1}'"$mac"'/m;
 ' Casks/aqueous.rb
 git --no-pager diff --stat

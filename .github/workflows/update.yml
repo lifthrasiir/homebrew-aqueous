@@ -98,12 +98,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAP: ${{ runner.temp }}/tap
         run: |
-          printf '%s\n' "$VERSION" | grep -Eqx '0\.0\.[0-9]+'
+          printf '%s\n' "$VERSION" | grep -Eqx '(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.]+)?'
           cp "$TAP/Formula/aqr.rb" Formula/aqr.rb
           cp "$TAP/Casks/aqueous.rb" Casks/aqueous.rb
           git status --porcelain
           [ -z "$(git status --porcelain -- ':!Formula/aqr.rb' ':!Casks/aqueous.rb')" ]
-          if git diff -U0 | grep -E '^[-+][^-+]' | grep -Evx '[-+] *(version "[0-9.]+"|url "https://github\.com/lifthrasiir/aqueous/releases/download/v0\.0\.[0-9]+/aqr-[0-9]+-[a-z0-9_.-]+"|sha256 "[0-9a-f]{64}")'; then
+          if git diff -U0 | grep -E '^[-+][^-+]' | grep -Evx '[-+] *(version "[0-9A-Za-z.-]+"|url "https://github\.com/lifthrasiir/aqueous/releases/download/v[0-9A-Za-z.-]+/aqr-[0-9A-Za-z_.-]+"|sha256 "[0-9a-f]{64}")'; then
               echo "Changed beyond the version, URLs and SHA-256s." >&2; exit 1
           fi
           git config user.name 'github-actions[bot]'
